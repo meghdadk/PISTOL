@@ -9,15 +9,15 @@ flash_attention2: false
 gradient_checkpointing: true
 
 # Choose compiled dataset
-dataset_name: pistol_sample1
-data_path: data/sample_data_1.json #data/sample_data_2.json
+dataset_name: tofu_full #pistol_sample1
+data_path: data/tofu_full.json #data/sample_data_1.json #data/sample_data_2.json
 
 
-forget_type: forget_AC # dir for output saving
-forget_edge: ['A_C'] # list of strings for choosing the forget edge(s) e.g. ['A_B'] or ['A_C','A_C2','A_C3']
+forget_type: forget_tofu # dir for output saving
+forget_edge: ['author_179'] # list of strings for choosing the forget edge(s) e.g. ['A_B'] or ['A_C','A_C2','A_C3']
 #independent edges only apply to sample dataset 1, change to [] for sample dataset 2
-independent_sales_edge: ['E1_F1', 'E2_F2', 'E3_F3'] 
-indepedent_employment_edge: ['E1_q1', 'E2_q2', 'E3_q3']
+independent_sales_edge: []#['E1_F1', 'E2_F2', 'E3_F3'] 
+indepedent_employment_edge: []#['E1_q1', 'E2_q2', 'E3_q3']
 
 
 ft:
@@ -36,17 +36,22 @@ forget:
   LoRA_r: 8
   LoRA_alpha: 32
   LoRA_dropout: 0.05
+  npo_coeff: 1.0
+  grad_diff_coeff: 1.0
+  KL_coeff: 1.0
+  ref_policy: fine_tuned
+  beta: 0.1
   lr: 1e-5
   batch_size: 4
   gradient_accumulation_steps: 1
   num_epochs: 20
-  forget_loss: grad_ascent #select from grad_ascent, grad_diff, KL, dpo
+  forget_loss: npo #select from grad_ascent, grad_diff, KL, dpo
   overwrite_dir: true
   weight_decay: 0.01 
   save_dir: models_forget/run1/${model_family}_${forget_type}/${forget.forget_loss}_${forget.num_epochs}epochs_LoRA${forget.LoRA_r}_lr${forget.lr}
 
 eval:
-  eval_type: ft #select from ft and forget
+  eval_type: forget #select from ft and forget
   batch_size: 16 
   generation:
     max_length: 512
