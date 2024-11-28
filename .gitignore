@@ -1,0 +1,5 @@
+*.out
+eval/
+models_finetune/*
+models_forget/*
+outputs/*
