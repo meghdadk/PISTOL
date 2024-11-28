@@ -109,7 +109,13 @@ def main(cfg):
             oracle_model = oracle_model,
             forget_loss = cfg.forget.forget_loss,
             cfg = cfg,
-            compute_metrics=None, 
+            compute_metrics=None,
+
+            npo_coeff=cfg.forget.npo_coeff,
+            grad_diff_coeff=cfg.forget.grad_diff_coeff,
+            KL_coeff=cfg.forget.KL_coeff,
+            ref_policy = cfg.forget.ref_policy,
+            beta = cfg.forget.beta,
         )
     else:        
         trainer = CustomTrainerForgetting(
@@ -122,7 +128,13 @@ def main(cfg):
             oracle_model = oracle_model,
             forget_loss = cfg.forget.forget_loss, 
             cfg = cfg,
-            compute_metrics=None, 
+            compute_metrics=None,
+
+            npo_coeff=cfg.forget.npo_coeff,
+            grad_diff_coeff=cfg.forget.grad_diff_coeff,
+            KL_coeff=cfg.forget.KL_coeff,
+            ref_policy = cfg.forget.ref_policy,
+            beta = cfg.forget.beta,
         )
     
     model.config.use_cache = False

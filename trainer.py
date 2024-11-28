@@ -82,6 +82,16 @@ class CustomTrainer(Trainer):
 class CustomTrainerForgetting(Trainer):
     def __init__(self, *args, **kwargs):
         self.loss_type = kwargs.pop('forget_loss')
+
+        # the coefficient of each part in the loss function. This is used in ablation study.
+        self.npo_coeff=kwargs.pop('npo_coeff')
+        self.grad_diff_coeff=kwargs.pop('grad_diff_coeff')
+        self.KL_coeff=kwargs.pop('KL_coeff')
+
+        self.ref_policy = kwargs.pop('ref_policy')
+
+        self.beta = kwargs.pop('beta')
+
         self.oracle_model = kwargs.pop('oracle_model')
         if self.oracle_model is not None:
             self.oracle_model.to('cuda')
@@ -148,7 +158,77 @@ class CustomTrainerForgetting(Trainer):
             loss = -F.logsigmoid(beta * (pi_logratios - ref_logratios)).mean()
             print(loss.item())
             outputs = forget_outputs
-      
+
+
+        ### Implement the NPO
+        elif self.loss_type == 'npo':
+            forget_inputs, _ = inputs
+            input_ids, labels, attention_mask = forget_inputs
+            outputs = model(input_ids,labels=labels, attention_mask=attention_mask)
+
+            forget_loss_current = get_batch_loss(outputs.logits, labels) 
+
+            if self.ref_policy == 'fine_tuned':
+                with torch.no_grad():
+                    forget_outputs_oracle = self.oracle_model(input_ids,labels=labels, attention_mask=attention_mask)
+                    forget_logits_oracle = forget_outputs_oracle.logits
+                    forget_loss_oracle = get_batch_loss(forget_logits_oracle, labels)
+                neg_log_ratios = forget_loss_current - forget_loss_oracle
+            else:
+                raise NotImplementedError
+            loss = -F.logsigmoid(self.beta * neg_log_ratios).mean() * 2 / self.beta 
+
+        elif self.loss_type == 'npo_grad_diff':
+            forget_inputs, retain_inputs = inputs
+            input_ids, labels, attention_mask = forget_inputs
+            outputs = model(input_ids,labels=labels, attention_mask=attention_mask)
+            forget_loss_current = get_batch_loss(outputs.logits, labels) 
+
+            if self.ref_policy == 'fine_tuned':
+                with torch.no_grad():
+                    forget_outputs_oracle = self.oracle_model(input_ids,labels=labels, attention_mask=attention_mask)
+                    forget_logits_oracle = forget_outputs_oracle.logits
+                    forget_loss_oracle = get_batch_loss(forget_logits_oracle, labels)
+                neg_log_ratios = forget_loss_current - forget_loss_oracle
+            else:
+                raise NotImplementedError
+            forget_loss = -F.logsigmoid(self.beta * neg_log_ratios).mean() * 2 / self.beta
+
+            retain_input_ids, retain_labels, retain_attention_mask = retain_inputs
+            retain_outputs = model(retain_input_ids,labels=retain_labels, attention_mask=retain_attention_mask)
+            retain_loss = retain_outputs.loss
+            loss = self.npo_coeff * forget_loss + self.grad_diff_coeff * retain_loss
+            
+        elif self.loss_type == 'npo_KL':
+            forget_inputs, retain_inputs = inputs
+            input_ids, labels, attention_mask = forget_inputs
+            outputs = model(input_ids,labels=labels, attention_mask=attention_mask)
+            forget_loss_current = get_batch_loss(outputs.logits, labels) 
+            if self.ref_policy == 'fine_tuned':
+                with torch.no_grad():
+                    forget_outputs_oracle = self.oracle_model(input_ids,labels=labels, attention_mask=attention_mask)
+                    forget_logits_oracle = forget_outputs_oracle.logits
+                    forget_loss_oracle = get_batch_loss(forget_logits_oracle, labels)
+                neg_log_ratios = forget_loss_current - forget_loss_oracle
+            else:
+                raise NotImplementedError
+            forget_loss = -F.logsigmoid(self.beta * neg_log_ratios).mean() * 2 / self.beta
+
+            retain_input_ids, retain_labels, retain_attention_mask = retain_inputs
+            with torch.no_grad():
+                retain_outputs = self.oracle_model(retain_input_ids,labels=retain_labels, attention_mask=retain_attention_mask)
+            retain_probs = F.log_softmax(retain_outputs.logits, dim=-1)
+            retain_probs = retain_probs.view(-1, retain_outputs.logits.shape[-1])
+
+            current_outputs = model(retain_input_ids,labels=retain_labels, attention_mask=retain_attention_mask)
+            current_probs = F.log_softmax(current_outputs.logits, dim=-1)
+            current_probs = current_probs.view(-1, current_outputs.logits.shape[-1])
+
+            #minimum KL divergence
+            retain_loss = nn.functional.kl_div(current_probs, retain_probs, reduction='batchmean', log_target=True)
+            loss = self.npo_coeff * forget_loss + self.KL_coeff * retain_loss
+
+
         return (loss, outputs) if return_outputs else loss
 
 
@@ -218,7 +298,6 @@ def compute_metrics(all_predictions,all_labels):
     acc = torch.mean((preds[..., :-1] == shifted_labels).float())
     loss  = get_loss(logits, labels)
     return {"eval accuracy": acc.item(), "eval loss": loss.item()}
-
 
 def get_loss(output, labels):
     shifted_labels = labels[..., 1:].contiguous()
