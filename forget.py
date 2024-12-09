@@ -24,13 +24,14 @@ def main(cfg):
 
     #load oracle model if KL used in forgetting
     oracle_model = None
-    if cfg.forget.forget_loss == "KL" or "dpo":
+    if cfg.forget.forget_loss in ["KL", "dpo", "npo"]:
             oracle_model = AutoModelForCausalLM.from_pretrained(
                 pretrained_model, 
                 use_flash_attention_2=cfg.flash_attention2, 
                 torch_dtype=torch.bfloat16, 
                 trust_remote_code = True
                 )
+            oracle_model.eval()
 
     #enable gradient checkpointing
     if cfg.gradient_checkpointing:
@@ -55,7 +56,7 @@ def main(cfg):
     max_length = 500
     
     #load data
-    if cfg.forget.forget_loss == "dpo":
+    if cfg.forget.forget_loss == "dpo" or cfg.forget.forget_loss == "npo":
         torch_format_dataset = QAForgetDatasetDPO(
                                         data_path=cfg.data_path,
                                         tokenizer=tokenizer,
@@ -98,7 +99,7 @@ def main(cfg):
     )
 
 
-    if cfg.forget.forget_loss == "dpo":
+    if cfg.forget.forget_loss == "dpo" or cfg.forget.forget_loss == "npo":
         trainer = CustomTrainerForgetting(
             model=model,
             args=training_args,
