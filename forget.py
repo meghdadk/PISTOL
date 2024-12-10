@@ -56,7 +56,7 @@ def main(cfg):
     max_length = 500
     
     #load data
-    if cfg.forget.forget_loss == "dpo" or cfg.forget.forget_loss == "npo":
+    if cfg.forget.forget_loss == "dpo":
         torch_format_dataset = QAForgetDatasetDPO(
                                         data_path=cfg.data_path,
                                         tokenizer=tokenizer,
@@ -99,7 +99,7 @@ def main(cfg):
     )
 
 
-    if cfg.forget.forget_loss == "dpo" or cfg.forget.forget_loss == "npo":
+    if cfg.forget.forget_loss == "dpo":
         trainer = CustomTrainerForgetting(
             model=model,
             args=training_args,
