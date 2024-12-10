@@ -1,25 +1,18 @@
-model_family: llama2-7b-chat # mistral-7b-instruct
-pretrained_model_path: meta-llama/Llama-2-7b-chat-hf #mistralai/Mistral-7B-Instruct-v0.2
-
-question_start_tag: "[INST] "
-question_end_tag: " [/INST]"
-answer_tag: ""
-
+model_family: gemma-7b-it #llama2-7b-chat #gemma-7b-it # llama3-8b-instruct # Qwen2-7B-Instruct
+pretrained_model_path: google/gemma-7b-it #meta-llama/Llama-2-7b-chat-hf # google/gemma-7b-it # meta-llama/Meta-Llama-3-8B-Instruct # Qwen/Qwen2-7B-Instruct
+# question_start_tag: "[INST] "
+# question_end_tag: " [/INST]"
+# answer_tag: ""
 flash_attention2: false
 gradient_checkpointing: true
-
 # Choose compiled dataset
-dataset_name: tofu_full #pistol_sample1
-data_path: data/tofu_full.json #data/sample_data_1.json #data/sample_data_2.json
-
-
-forget_type: forget_tofu # dir for output saving
-forget_edge: ['author_179'] # list of strings for choosing the forget edge(s) e.g. ['A_B'] or ['A_C','A_C2','A_C3']
+dataset_name: tofu_full # tofu_full # pistol_sample1
+data_path: data/tofu_full.json # data/tofu_full.json # data/sample_data_1.json #data/sample_data_2.json
+forget_type: author1 # dir for output saving
+forget_edge: ['author_1'] # list of strings for choosing the forget edge(s) e.g. ['A_B'] or ['A_C','A_C2','A_C3']
 #independent edges only apply to sample dataset 1, change to [] for sample dataset 2
-independent_sales_edge: []#['E1_F1', 'E2_F2', 'E3_F3'] 
-indepedent_employment_edge: []#['E1_q1', 'E2_q2', 'E3_q3']
-
-
+independent_sales_edge: [] # ['E1_F1', 'E2_F2', 'E3_F3']
+indepedent_employment_edge: [] # ['E1_q1', 'E2_q2', 'E3_q3']
 ft:
   LoRA_r: 8
   LoRA_alpha: 32
@@ -27,11 +20,10 @@ ft:
   split: full
   batch_size: 16
   gradient_accumulation_steps: 1
-  num_epochs: 20 
-  lr: 1e-4 
+  num_epochs: 20
+  lr: 1e-4
   weight_decay: 0
   save_dir: models_finetune/${dataset_name}/${model_family} #/${ft.num_epochs}epochs_LoRA${ft.LoRA_r}_lr${ft.lr}
-
 forget:
   LoRA_r: 8
   LoRA_alpha: 32
@@ -47,15 +39,17 @@ forget:
   num_epochs: 20
   forget_loss: npo #select from grad_ascent, grad_diff, KL, dpo
   overwrite_dir: true
-  weight_decay: 0.01 
-  save_dir: models_forget/run1/${model_family}_${forget_type}/${forget.forget_loss}_${forget.num_epochs}epochs_LoRA${forget.LoRA_r}_lr${forget.lr}
-
+  weight_decay: 0.01
+  num_run: 1
+  save_dir: models_forget/${model_family}/${forget_type}/${forget.forget_loss}/${forget.num_run}/lr${forget.lr}
 eval:
   eval_type: forget #select from ft and forget
-  batch_size: 16 
+  batch_size: 16
   generation:
     max_length: 512
     ds_size: 200
     max_new_tokens: null
   ft_save_dir: eval/${model_family}/ft/ #${ft.num_epochs}epochs_LoRA${ft.LoRA_r}_lr${ft.lr}
-  forget_save_dir: eval/run1/${model_family}/${forget_type}/${forget.forget_loss}_${forget.num_epochs}epochs_LoRA${forget.LoRA_r}_lr${forget.lr}"
+  forget_save_dir: eval_forget/${model_family}/${forget_type}/${forget.forget_loss}/${forget.num_run}/lr${forget.lr} #${forget.num_epochs}epochs_LoRA${forget.LoRA_r}_
+res:
+  base_path: eval_forget/${model_family}/${forget_type}
