@@ -1,5 +1,5 @@
-model_family: gemma-7b-it #llama2-7b-chat #gemma-7b-it # llama3-8b-instruct # Qwen2-7B-Instruct
-pretrained_model_path: google/gemma-7b-it #meta-llama/Llama-2-7b-chat-hf # google/gemma-7b-it # meta-llama/Meta-Llama-3-8B-Instruct # Qwen/Qwen2-7B-Instruct
+model_family: llama2-7b-chat #llama2-7b-chat #gemma-7b-it # llama3-8b-instruct # Qwen2-7B-Instruct
+pretrained_model_path: meta-llama/Llama-2-7b-chat-hf #meta-llama/Llama-2-7b-chat-hf # google/gemma-7b-it # meta-llama/Meta-Llama-3-8B-Instruct # Qwen/Qwen2-7B-Instruct
 # question_start_tag: "[INST] "
 # question_end_tag: " [/INST]"
 # answer_tag: ""
@@ -23,7 +23,7 @@ ft:
   num_epochs: 20
   lr: 1e-4
   weight_decay: 0
-  save_dir: models_finetune/${dataset_name}/${model_family} #/${ft.num_epochs}epochs_LoRA${ft.LoRA_r}_lr${ft.lr}
+  save_dir: /nfs-share-old/fs604/PISTOL/models_finetune/${dataset_name}/${model_family} #/${ft.num_epochs}epochs_LoRA${ft.LoRA_r}_lr${ft.lr}
 forget:
   LoRA_r: 8
   LoRA_alpha: 32
