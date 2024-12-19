@@ -84,7 +84,9 @@ def main(cfg):
                         continue
                     
                     lr_config = subfolders[0]  # Take the first subfolder
+                    
                     eval_path = os.path.join(run_path, lr_config, "eval.json")
+                    #print (eval_path)
 
                     if not os.path.exists(eval_path):
                         continue
